@@ -43,36 +43,37 @@
     function initConnection() {
       pc = new RTCPeerConnection({
         iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
           {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject"
+            urls: 'stun:stun.l.google.com:19302'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
           }
         ]
       });
 
       pc.onicecandidate = (e) => {
         if (!e.candidate) {
-          const localDesc = JSON.stringify(pc.localDescription);
           if (isSharer) {
-            document.getElementById("offerBox").value = localDesc;
+            document.getElementById("offerBox").value = JSON.stringify(pc.localDescription);
           } else {
-            document.getElementById("viewerAnswerBox").value = localDesc;
+            document.getElementById("viewerAnswerBox").value = JSON.stringify(pc.localDescription);
             alert("✅ Send this answer back to your friend (the sharer).");
           }
         }
       };
 
       pc.ontrack = (event) => {
-        console.log("✅ Remote stream received.");
+        console.log("✅ Track received.");
         document.getElementById('video').srcObject = event.streams[0];
       };
 
       pc.oniceconnectionstatechange = () => {
-        console.log("ICE connection state:", pc.iceConnectionState);
+        console.log("ICE State:", pc.iceConnectionState);
         if (pc.iceConnectionState === "disconnected") {
-          alert("⚠️ Connection lost.");
+          alert("⚠️ Connection lost. Please try again.");
         }
       };
     }
@@ -85,15 +86,11 @@
       document.getElementById("sharerSection").style.display = "block";
       document.getElementById("receiverSection").style.display = "none";
 
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        screenStream.getTracks().forEach(track => pc.addTrack(track, screenStream));
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      screenStream.getTracks().forEach(track => pc.addTrack(track, screenStream));
 
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-      } catch (err) {
-        alert("❌ Screen share error: " + err.message);
-      }
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
     }
 
     async function pasteViewerAnswer() {
@@ -119,7 +116,6 @@
       try {
         const offerDesc = new RTCSessionDescription(JSON.parse(offerText));
         await pc.setRemoteDescription(offerDesc);
-
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
       } catch (err) {
@@ -131,8 +127,6 @@
       const text = document.getElementById(id);
       navigator.clipboard.writeText(text.value).then(() => {
         alert("Copied to clipboard!");
-      }).catch(() => {
-        alert("❌ Copy failed. Please select and copy manually.");
       });
     }
   </script>
